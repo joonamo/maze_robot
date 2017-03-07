@@ -8,11 +8,11 @@
 int dist_f = 0;
 #define DIST_IN_L 20
 int dist_l = 0;
-#define DIST_IN_R 21
+#define DIST_IN_R 18
 int dist_r = 0;
 
-#define MOTOR_OUT_L 17
-#define MOTOR_OUT_R 16
+#define MOTOR_OUT_L 16
+#define MOTOR_OUT_R 21
 
 Servo wheel_left;
 int speed_left = 0;
