@@ -1,12 +1,37 @@
 #include <Servo.h>
+#include <Metro.h>
+#define Serial Serial1
 
-#define STOP_BUTTON 1
-#define DOWN_BUTTON 0
-#define UP_BUTTON 2
+#include <stdarg.h>
+void p(char *fmt, ... ){
+  char buf[128]; // resulting string limited to 128 chars
+  va_list args;
+  va_start (args, fmt );
+  vsnprintf(buf, 128, fmt, args);
+  va_end (args);
+  Serial.println(buf);
+}
 
-#define DIST_IN_F 19
+void p(const __FlashStringHelper *fmt, ... ){
+  char buf[128]; // resulting string limited to 128 chars
+  va_list args;
+  va_start (args, fmt);
+#ifdef __AVR__
+  vsnprintf_P(buf, sizeof(buf), (const char *)fmt, args); // progmem for AVR
+#else
+  vsnprintf(buf, sizeof(buf), (const char *)fmt, args); // for the rest of the world
+#endif
+  va_end(args);
+  Serial.println(buf);
+}
+
+// #define STOP_BUTTON 1
+// #define DOWN_BUTTON 0
+// #define UP_BUTTON 2
+
+#define DIST_IN_F 20
 int dist_f = 0;
-#define DIST_IN_L 20
+#define DIST_IN_L 19
 int dist_l = 0;
 #define DIST_IN_R 18
 int dist_r = 0;
@@ -31,6 +56,8 @@ int right_mapped;
 int speed = 0;
 int dir = 0;
 
+Metro debug_out = Metro(100);
+
 void setup() {
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -38,11 +65,11 @@ void setup() {
   wheel_left.attach(MOTOR_OUT_L);
   wheel_right.attach(MOTOR_OUT_R);
 
-  pinMode(STOP_BUTTON, INPUT_PULLUP);
-  pinMode(DOWN_BUTTON, INPUT_PULLUP);
-  pinMode(UP_BUTTON, INPUT_PULLUP);
+  // pinMode(STOP_BUTTON, INPUT_PULLUP);
+  // pinMode(DOWN_BUTTON, INPUT_PULLUP);
+  // pinMode(UP_BUTTON, INPUT_PULLUP);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
@@ -65,10 +92,11 @@ void loop() {
     map(dir, 0, 90, 100, 0),
     right_rw_max, right_zero, right_fwd_max);
 
-  // Serial.print(" left: ");
-  // Serial.print(left_mapped);
-  // Serial.print(" right: ");
-  // Serial.println(right_mapped);
+  if (debug_out.check() == 1)
+  {
+    p(F("L %03d, F %03d, R %03d, left_mapped %03d, right_mapped %03d"),
+      dist_l, dist_f, dist_r, left_mapped, right_mapped);
+  }
 
   wheel_right.write(right_mapped);
   wheel_left.write(left_mapped);
