@@ -39,9 +39,11 @@ int dist_r = 0;
 #define MOTOR_OUT_L 16
 #define MOTOR_OUT_R 21
 
+#define DEBUGGER_ATTACHED_PIN 3
+
 Servo wheel_left;
 int speed_left = 0;
-int left_zero = 94;
+int left_zero = 93;
 int left_fwd_max = 130;
 int left_rw_max = 55;
 int left_mapped;
@@ -55,6 +57,11 @@ int right_mapped;
 
 int speed = 0;
 int dir = 0;
+int more_space = 0;
+int dir_sign = 0;
+
+bool manual_control = true;
+byte byteRead;
 
 Metro debug_out = Metro(100);
 
@@ -64,6 +71,9 @@ void setup() {
 
   wheel_left.attach(MOTOR_OUT_L);
   wheel_right.attach(MOTOR_OUT_R);
+
+  pinMode(DEBUGGER_ATTACHED_PIN, INPUT_PULLUP);
+  manual_control = digitalRead(DEBUGGER_ATTACHED_PIN) == LOW;
 
   // pinMode(STOP_BUTTON, INPUT_PULLUP);
   // pinMode(DOWN_BUTTON, INPUT_PULLUP);
@@ -77,25 +87,58 @@ void loop() {
   dist_l = analogRead(DIST_IN_L);
   dist_r = analogRead(DIST_IN_R);
   dir = 0;
-  dir += map(
-    dist_r, 0, 300, 90, -90);
 
-  dir += map(
-      dist_f, 0, 300, 0, -90);
+  if (Serial.available()) 
+  {
+    /* read the most recent byte */
+    byteRead = Serial.read();
+    if (byteRead == 'a')
+    {
+      manual_control = !manual_control;
+    }
+  }
 
+  if (manual_control)
+  {
+    left_mapped = left_zero;
+    right_mapped = right_zero;
+  }
+  else
+  {
+    more_space = dist_l - dist_r;
 
+    if (more_space > 0)
+      dir += map(more_space, 0, 300, 5, 120);
+    else
+      dir += map(abs(more_space), 0, 300, 5, -120);
 
-  left_mapped = map_speed(
-    map(dir, -90, 0, 0, 100), 
-    left_rw_max, left_zero, left_fwd_max);
-  right_mapped = map_speed(
-    map(dir, 0, 90, 100, 0),
-    right_rw_max, right_zero, right_fwd_max);
+    if (dir >= 0)
+      dir_sign = 1;
+    else
+      dir_sign = -1;
+
+    dir = map(dist_f, 50, 400, dir, dir_sign * 180);
+
+    left_mapped = map_speed(
+      map(dir, -90, 0, 0, 100), 
+      left_rw_max, left_zero, left_fwd_max);
+    right_mapped = map_speed(
+      map(dir, 0, 90, 100, 0),
+      right_rw_max, right_zero, right_fwd_max);
+  }
 
   if (debug_out.check() == 1)
   {
-    p(F("L %03d, F %03d, R %03d, left_mapped %03d, right_mapped %03d"),
-      dist_l, dist_f, dist_r, left_mapped, right_mapped);
+    if (manual_control)
+    {
+      Serial.write("MANUAL ");
+    }
+    else
+    {
+      Serial.write("BOT ");
+    }
+    p(F("L %03d, F %03d, R %03d, dir %03d, left_mapped %03d, right_mapped %03d"),
+      dist_l, dist_f, dist_r, dir, left_mapped, right_mapped);
   }
 
   wheel_right.write(right_mapped);
