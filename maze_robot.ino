@@ -102,6 +102,10 @@ void loop() {
       manual_control = !manual_control;
       debug_out.reset();
     }
+    else if (byteRead == 'q')
+    {
+      print_debug();
+    }
   }
 
   if (manual_control)
@@ -119,10 +123,6 @@ void loop() {
         long r = Serial1.parseInt();
         dir = r;
         Serial1.read();
-      }
-      else if (byteRead == 'q')
-      {
-        print_debug();
       }
 
       byteRead = Serial1.read();
