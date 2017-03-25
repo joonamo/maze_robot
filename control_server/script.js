@@ -19,7 +19,7 @@ function display_last_status() {
 function get_status() {
     $.ajax({
         method: "GET",
-        url: "http://teensypi.local:8000/",
+        url: "status",
         dataType: "json",
         success: function(data){
             last_status = data.status;
@@ -33,6 +33,14 @@ function get_status() {
             setTimeout( get_status, 5000 );
         } 
 
+    });
+}
+
+function toggle_manual() {
+    $.ajax({
+        method: "GET",
+        url: "toggle_manual",
+        dataType: "json"
     });
 }
 
