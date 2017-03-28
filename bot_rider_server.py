@@ -26,18 +26,20 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         print("Request!")
         print(self.path)
 
-        if self.path == "/status":
-            queries = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        parsed_path = urllib.parse.urlparse(self.path)
+
+        if parsed_path.path == "/status":
+            queries = urllib.parse.parse_qs(parsed_path.query)
 
             response = {}
 
             if "speed" in queries:
                 print("speed: %s" % str(queries["speed"][0]))
-                ser.write((u"s%ds" % int(queries["speed"][0])).encode("UTF-8"))
+                ser.write((u"s%ds" % int(float(queries["speed"][0]))).encode("UTF-8"))
                 response["speed"] = queries["speed"]
             if "dir" in queries:
                 print("dir: %s" % str(queries["dir"][0]))
-                ser.write((u"d%dd" % int(queries["dir"][0])).encode("UTF-8"))
+                ser.write((u"d%dd" % int(float(queries["dir"][0]))).encode("UTF-8"))
                 response["dir"] = queries["dir"]
 
             ser.reset_input_buffer()

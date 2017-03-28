@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <meta content='width=device-width, initial-scale=0.5, maximum-scale=0.5, user-scalable=0' name='viewport' />
     <title>Bot Rider</title>
     <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto" rel="stylesheet">
     <script src="jquery-3.2.0.min.js"></script>
@@ -8,19 +9,41 @@
 </head> 
 
 <body>
-    <div id=container>
-        <div id=status></div>
-        <div id=sensors>
-            <div class=sensor_info id=sensor_l>
-                <div class=sensor_bar id=bar_l style="height: 100%;"></div>
+    <div id="container">
+<!-- Status bar -->
+        <div id="status"></div>
+
+<!-- Sensor Bars -->
+        <div id="sensors">
+            <div class="sensor_info" id="sensor_l">
+                <div class="sensor_bar" id="bar_l" style="height: 100%;"></div>
             </div>
-            <div class=sensor_info id=sensor_f>
-                <div class=sensor_bar id=bar_f style="height: 70%;"></div>
+            <div class="sensor_info" id="sensor_f">
+                <div class="sensor_bar" id="bar_f" style="height: 70%;"></div>
             </div>
-            <div class=sensor_info id=sensor_r>
-                <div class=sensor_bar id=bar_r style="height: 50%;"></div>
+            <div class="sensor_info" id="sensor_r">
+                <div class="sensor_bar" id="bar_r" style="height: 50%;"></div>
             </div>
         </div>
-        <div onclick="toggle_manual()"> Toggle manual control </div> 
+
+<!-- Manual Controls -->
+        <div id="control_container">
+            <div id="direction_controller">
+                <div id="direction_knob" class="knob" style="left: 48%;">
+                </div>
+            </div>
+            <div id="speed_controller">
+                <div id="speed_knob" class="knob" style="top: 48%">
+                </div>
+            </div>
+        </div>
+
+<!-- Checkboxers -->
+        <div id="manual_state"> 
+            <input type="checkbox" id="manual_checkbox" onclick="toggle_manual();">
+            <label for="manual_checkbox">Manual Control</label>
+            <input type="checkbox" id="update_active_checkbox" checked>
+            <label for="update_active_checkbox">Update active</label>
+        </div> 
     </div>
 </body onload>
