@@ -1,6 +1,7 @@
 #include <Servo.h>
 #include <Metro.h>
 //#define Serial Serial1
+#include <ResponsiveAnalogRead.h>
 
 #include <stdarg.h>
 void p(char *fmt, ... ){
@@ -32,10 +33,13 @@ void p(const __FlashStringHelper *fmt, ... ){
 // #define UP_BUTTON 2
 
 #define DIST_IN_F 20
+ResponsiveAnalogRead dist_f_reader(DIST_IN_F, true);
 int dist_f = 0;
 #define DIST_IN_L 19
+ResponsiveAnalogRead dist_l_reader(DIST_IN_L, true);
 int dist_l = 0;
 #define DIST_IN_R 18
+ResponsiveAnalogRead dist_r_reader(DIST_IN_R, true);
 int dist_r = 0;
 
 #define MOTOR_OUT_L 16
@@ -63,9 +67,10 @@ int more_space = 0;
 int dir_sign = 0;
 
 bool manual_control = true;
+int debug_light_on = 1;
 byte byteRead;
 
-Metro debug_out = Metro(1000);
+Metro debug_out = Metro(10000);
 
 void setup() {
   pinMode(13, OUTPUT);
@@ -75,7 +80,8 @@ void setup() {
   wheel_right.attach(MOTOR_OUT_R);
 
   pinMode(DEBUGGER_ATTACHED_PIN, INPUT_PULLUP);
-  manual_control = digitalRead(DEBUGGER_ATTACHED_PIN) == LOW;
+  delay(100);
+  manual_control = !digitalRead(DEBUGGER_ATTACHED_PIN);
 
   // pinMode(STOP_BUTTON, INPUT_PULLUP);
   // pinMode(DOWN_BUTTON, INPUT_PULLUP);
@@ -88,6 +94,12 @@ void setup() {
 }
 
 void loop() {
+  debug_light_on = 1 - debug_light_on;
+  digitalWrite(13, debug_light_on);
+
+  dist_f_reader.update();
+  dist_l_reader.update();
+  dist_r_reader.update();
   dist_f = analogRead(DIST_IN_F);
   dist_l = analogRead(DIST_IN_L);
   dist_r = analogRead(DIST_IN_R);
@@ -138,7 +150,6 @@ void loop() {
       map(speed, 0, 255, right_zero, right_rw_max),
       right_zero,
       map(speed, 0, 255, right_zero, right_fwd_max));
-
   }
   else
   {
