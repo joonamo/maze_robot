@@ -44,6 +44,7 @@ int dist_r = 0;
 
 #define MOTOR_OUT_L 16
 #define MOTOR_OUT_R 21
+#define MOTOR_OUT_HEAD 17
 
 #define DEBUGGER_ATTACHED_PIN 3
 
@@ -60,6 +61,9 @@ int right_zero = 93;
 int right_fwd_max = 55;
 int right_rw_max = 130;
 int right_mapped = right_zero;
+
+Servo head;
+ResponsiveAnalogRead head_dir(0, true, 0.00001);
 
 int speed = 0;
 int dir = 0;
@@ -78,6 +82,7 @@ void setup() {
 
   wheel_left.attach(MOTOR_OUT_L);
   wheel_right.attach(MOTOR_OUT_R);
+  head.attach(MOTOR_OUT_HEAD);
 
   pinMode(DEBUGGER_ATTACHED_PIN, INPUT_PULLUP);
   delay(100);
@@ -185,7 +190,8 @@ void loop() {
 
   wheel_right.write(right_mapped);
   wheel_left.write(left_mapped);
-
+  head_dir.update(90 - dir);
+  head.write(head_dir.getValue());
 }
 
 int map_speed(int v, int mi, int zero, int ma)
