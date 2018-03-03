@@ -102,9 +102,9 @@ void loop() {
   debug_light_on = 1 - debug_light_on;
   digitalWrite(13, debug_light_on);
 
-  dist_f_reader.update();
-  dist_l_reader.update();
-  dist_r_reader.update();
+  // dist_f_reader.update();
+  // dist_l_reader.update();
+  // dist_r_reader.update();
   dist_f = analogRead(DIST_IN_F);
   dist_l = analogRead(DIST_IN_L);
   dist_r = analogRead(DIST_IN_R);
@@ -160,12 +160,12 @@ void loop() {
   {
     dir = 0;
 
-    more_space = dist_l - dist_r;
+    more_space = dist_l - dist_r * 0.8f;
 
     if (more_space > 0)
-      dir += map(more_space, 0, 300, 5, 120);
+      dir += map(more_space, 0, 300, 5, 180);
     else
-      dir += map(abs(more_space), 0, 300, 5, -120);
+      dir += map(abs(more_space), 0, 300, 5, -180);
 
     if (dir >= 0)
       dir_sign = 1;
