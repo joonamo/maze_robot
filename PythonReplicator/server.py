@@ -25,6 +25,7 @@ async def producer():
     return str(last_dir.value);
 
 async def server(websocket, path):
+    print("Client!")
     while True:
         websocket.send(last_dir)
         message = await producer()

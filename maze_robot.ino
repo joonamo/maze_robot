@@ -56,14 +56,14 @@ int dist_r = 0;
 
 Servo wheel_left;
 int speed_left = 0;
-int left_zero = 93;
+int left_zero = 92;
 int left_fwd_max = 130;
 int left_rw_max = 55;
 int left_mapped = left_zero;
 
 Servo wheel_right;
 int speed_right = 0;
-int right_zero = 93;
+int right_zero = 92;
 int right_fwd_max = 55;
 int right_rw_max = 130;
 int right_mapped = right_zero;
@@ -166,9 +166,9 @@ void loop() {
     }
     else if (byteRead == 'd')
     {
-      long r = Serial1.parseInt();
-      dir = r;
-      targetYaw = (double)r;
+      double r = Serial1.parseFloat();
+      dir = (int)r;
+      targetYaw = r;
       Serial1.read();
     }
 
@@ -193,10 +193,10 @@ void loop() {
   LongDelta = (long)(Delta * 1000.0);
 
   left_mapped = map_speed(
-    map(LongDelta, -180000, 180000, 100, -100),
+    map(LongDelta, -180000, 180000, 500, -500),
     left_rw_max, left_zero, left_fwd_max);
   right_mapped = map_speed(
-    map(LongDelta, -180000, 180000, -100, 100),
+    map(LongDelta, -180000, 180000, -500, 500),
     right_rw_max, right_zero, right_fwd_max);
 
   prevYaw = euler.x();
