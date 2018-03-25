@@ -3,6 +3,12 @@
 //#define Serial Serial1
 #include <ResponsiveAnalogRead.h>
 
+#include <i2c_t3.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055_Wire1.h>
+#include <utility/imumaths.h>
+#include <math.h>
+
 #include <stdarg.h>
 void p(char *fmt, ... ){
   char buf[128]; // resulting string limited to 128 chars
@@ -74,7 +80,24 @@ bool manual_control = true;
 int debug_light_on = 1;
 byte byteRead;
 
-Metro debug_out = Metro(10000);
+Metro debug_out = Metro(100);
+Adafruit_BNO055 bno = Adafruit_BNO055();
+double prevYaw = 0.0;
+double targetYaw = 0.0;
+long LongDelta = 0;
+
+double ShortestRot(double From, double To)
+{
+  double arg = fmod(To - From, 360.0);
+  if (arg < 0 )  arg  = arg + 360.0;
+  if (arg > 180) arg  = arg - 360.0;
+  return (-arg);
+}
+
+double DoubleMap(double x, double in_min, double in_max, double out_min, double out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 void setup() {
   pinMode(13, OUTPUT);
@@ -91,6 +114,14 @@ void setup() {
   // pinMode(STOP_BUTTON, INPUT_PULLUP);
   // pinMode(DOWN_BUTTON, INPUT_PULLUP);
   // pinMode(UP_BUTTON, INPUT_PULLUP);
+
+  p(F("Startin BNO055... "));
+  while (!bno.begin())
+  {
+    p(F("Fail "));
+    delay(100);
+  }
+  p(F("Done!"));
 
   Serial.begin(115200);
   Serial1.begin(115200);
@@ -125,67 +156,53 @@ void loop() {
     }
   }
 
-  if (manual_control)
+  do
   {
-    do
+    if (byteRead == 's')
     {
-      if (byteRead == 's')
-      {
-        long r = Serial1.parseInt();
-        speed = r;
-        Serial1.read();
-      }
-      else if (byteRead == 'd')
-      {
-        long r = Serial1.parseInt();
-        dir = r;
-        Serial1.read();
-      }
-
-      byteRead = Serial1.read();
-    } while (Serial1.available());
-
-    left_mapped = map_speed(
-      map(dir, -90, 0, 0, 100), 
-      map(speed, 0, 255, left_zero, left_rw_max),
-      left_zero, 
-      map(speed, 0, 255, left_zero, left_fwd_max));
-    right_mapped = map_speed(
-      map(dir, 0, 90, 100, 0),
-      map(speed, 0, 255, right_zero, right_rw_max),
-      right_zero,
-      map(speed, 0, 255, right_zero, right_fwd_max));
-  }
-  else
-  {
-    dir = 0;
-
-    more_space = dist_l - dist_r * 0.8f;
-
-    if (more_space > 0)
-      dir += map(more_space, 0, 300, 5, 180);
-    else
-      dir += map(abs(more_space), 0, 300, 5, -180);
-
-    if (dir >= 0)
-      dir_sign = 1;
-    else
-      dir_sign = -1;
-
-    dir = map(dist_f, 50, 400, dir, dir_sign * 180);
-
-    left_mapped = map_speed(
-      map(dir, -90, 0, 0, 100), 
-      left_rw_max, left_zero, left_fwd_max);
-    right_mapped = map_speed(
-      map(dir, 0, 90, 100, 0),
-      right_rw_max, right_zero, right_fwd_max);
-    
-    if (debug_out.check() == 1)
+      long r = Serial1.parseInt();
+      speed = r;
+      Serial1.read();
+    }
+    else if (byteRead == 'd')
     {
-      print_debug();
+      long r = Serial1.parseInt();
+      dir = r;
+      targetYaw = (double)r;
+      Serial1.read();
     }
 
+    byteRead = Serial1.read();
+  } while (Serial1.available());
+
+  // left_mapped = map_speed(
+  //   map(dir, -90, 0, 0, 100), 
+  //   map(speed, 0, 255, left_zero, left_rw_max),
+  //   left_zero, 
+  //   map(speed, 0, 255, left_zero, left_fwd_max));
+  // right_mapped = map_speed(
+  //   map(dir, 0, 90, 100, 0),
+  //   map(speed, 0, 255, right_zero, right_rw_max),
+  //   right_zero,
+  //   map(speed, 0, 255, right_zero, right_fwd_max));
+
+  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+  //const double Yaw = euler.x() * PI / 180.0;
+
+  double Delta = ShortestRot(euler.x(), targetYaw);
+  LongDelta = (long)(Delta * 1000.0);
+
+  left_mapped = map_speed(
+    map(LongDelta, -180000, 180000, 100, -100),
+    left_rw_max, left_zero, left_fwd_max);
+  right_mapped = map_speed(
+    map(LongDelta, -180000, 180000, -100, 100),
+    right_rw_max, right_zero, right_fwd_max);
+
+  prevYaw = euler.x();
+  if (debug_out.check() == 1)
+  {
+    print_debug();
   }
 
   wheel_right.write(right_mapped);
@@ -204,6 +221,6 @@ int map_speed(int v, int mi, int zero, int ma)
 
 void print_debug()
 {
-  p(F("MANUAL: %d, L %03d, F %03d, R %03d, dir %03d, speed %03d, left_mapped %03d, right_mapped %03d"),
-    manual_control, dist_l, dist_f, dist_r, dir, speed, left_mapped, right_mapped);
+  p(F("MANUAL: %d, L %03d, F %03d, R %03d, dir %03d, speed %03d, left_mapped %03d, right_mapped %03d, Yaw: %03d, delta: %d"),
+    manual_control, dist_l, dist_f, dist_r, dir, speed, left_mapped, right_mapped, (int)prevYaw, LongDelta);
 }
