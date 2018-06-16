@@ -2,6 +2,7 @@
 #include <Metro.h>
 //#define Serial Serial1
 #include <ResponsiveAnalogRead.h>
+#include "Motors.h"
 
 #include <stdarg.h>
 void p(char *fmt, ... ){
@@ -32,38 +33,39 @@ void p(const __FlashStringHelper *fmt, ... ){
 // #define DOWN_BUTTON 0
 // #define UP_BUTTON 2
 
-#define DIST_IN_F 20
+#define DIST_IN_F 14
 ResponsiveAnalogRead dist_f_reader(DIST_IN_F, true);
 int dist_f = 0;
-#define DIST_IN_L 19
+#define DIST_IN_L 16
 ResponsiveAnalogRead dist_l_reader(DIST_IN_L, true);
 int dist_l = 0;
-#define DIST_IN_R 18
+#define DIST_IN_R 15
 ResponsiveAnalogRead dist_r_reader(DIST_IN_R, true);
 int dist_r = 0;
 
-#define MOTOR_OUT_L 16
-#define MOTOR_OUT_R 21
-#define MOTOR_OUT_HEAD 17
+#define MOTOR_OUT_HEAD 9
+#define MOTOR_OUT_TAIL 10
 
-#define DEBUGGER_ATTACHED_PIN 3
+#define DEBUGGER_ATTACHED_PIN 33 // disabled for now
 
-Servo wheel_left;
 int speed_left = 0;
-int left_zero = 93;
-int left_fwd_max = 130;
-int left_rw_max = 55;
+int left_zero = 0;
+int left_fwd_max = 255;
+int left_rw_max = -255;
 int left_mapped = left_zero;
 
-Servo wheel_right;
 int speed_right = 0;
-int right_zero = 93;
-int right_fwd_max = 55;
-int right_rw_max = 130;
+int right_zero = 0;
+int right_fwd_max = 255;
+int right_rw_max = -255;
 int right_mapped = right_zero;
 
 Servo head;
+Servo tail;
 ResponsiveAnalogRead head_dir(0, true, 0.00001);
+int tail_dir = 0;
+int tail_dir_dir = 1;
+const int tail_speed = 30;
 
 int speed = 0;
 int dir = 0;
@@ -76,13 +78,17 @@ byte byteRead;
 
 Metro debug_out = Metro(10000);
 
+Motors motors = Motors();
+
 void setup() {
+  delay(1000);
+  motors.Attach();
+
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
 
-  wheel_left.attach(MOTOR_OUT_L);
-  wheel_right.attach(MOTOR_OUT_R);
   head.attach(MOTOR_OUT_HEAD);
+  tail.attach(MOTOR_OUT_TAIL);
 
   pinMode(DEBUGGER_ATTACHED_PIN, INPUT_PULLUP);
   delay(100);
@@ -99,15 +105,21 @@ void setup() {
 }
 
 void loop() {
-  debug_light_on = 1 - debug_light_on;
-  digitalWrite(13, debug_light_on);
 
-  // dist_f_reader.update();
-  // dist_l_reader.update();
-  // dist_r_reader.update();
-  dist_f = analogRead(DIST_IN_F);
-  dist_l = analogRead(DIST_IN_L);
-  dist_r = analogRead(DIST_IN_R);
+
+  debug_light_on = 1 - debug_light_on;
+  // digitalWrite(13, debug_light_on);
+  // motors.SetSpeeds(tail_dir_dir * 64, tail_dir_dir * 64);
+  // tail_dir_dir *= -1;
+  // delay(1000);
+  // return;
+
+  dist_f_reader.update();
+  dist_l_reader.update();
+  dist_r_reader.update();
+  dist_f = dist_f_reader.getValue(); // analogRead(DIST_IN_F);
+  dist_l = dist_l_reader.getValue(); // analogRead(DIST_IN_L);
+  dist_r = dist_r_reader.getValue(); // analogRead(DIST_IN_R);
 
   byteRead = 0;
   if (Serial1.available()) 
@@ -160,7 +172,7 @@ void loop() {
   {
     dir = 0;
 
-    more_space = dist_l - dist_r * 0.8f;
+    more_space = dist_l - dist_r;
 
     if (more_space > 0)
       dir += map(more_space, 0, 300, 5, 180);
@@ -188,10 +200,18 @@ void loop() {
 
   }
 
-  wheel_right.write(right_mapped);
-  wheel_left.write(left_mapped);
+  motors.SetSpeeds(left_mapped, right_mapped);
   head_dir.update(90 - dir);
   head.write(head_dir.getValue());
+
+  tail_dir += tail_dir_dir;
+  tail.write(tail_dir / tail_speed);
+  if (tail_dir >= 180 * tail_speed) {
+    tail_dir_dir = -1;
+  }
+  else if (tail_dir <= 0) {
+    tail_dir_dir = 1;
+  }
 }
 
 int map_speed(int v, int mi, int zero, int ma)
